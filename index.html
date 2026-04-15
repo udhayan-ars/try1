@@ -24,21 +24,23 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       padding: 30px;
       border: 1px solid #00ff00;
       box-shadow: 0 0 20px #00ff00;
       text-align: center;
+      width: 320px;
     }
 
     input {
       display: block;
       margin: 10px auto;
       padding: 10px;
-      width: 200px;
+      width: 220px;
       background: black;
       border: 1px solid #00ff00;
       color: #00ff00;
+      outline: none;
     }
 
     button {
@@ -58,6 +60,7 @@
     .message {
       margin-top: 20px;
       color: #ff0000;
+      min-height: 20px;
     }
   </style>
 </head>
@@ -78,15 +81,28 @@
   const canvas = document.getElementById("matrix");
   const ctx = canvas.getContext("2d");
 
-  canvas.height = window.innerHeight;
-  canvas.width = window.innerWidth;
+  function resizeCanvas() {
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+  }
+  resizeCanvas();
 
   const letters = "01";
   const fontSize = 14;
-  const columns = canvas.width / fontSize;
+  let columns = Math.floor(canvas.width / fontSize);
+  let drops = [];
 
-  const drops = [];
-  for (let x = 0; x < columns; x++) drops[x] = 1;
+  function resetDrops() {
+    columns = Math.floor(canvas.width / fontSize);
+    drops = [];
+    for (let x = 0; x < columns; x++) drops[x] = 1;
+  }
+  resetDrops();
+
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    resetDrops();
+  });
 
   function draw() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
@@ -99,8 +115,9 @@
       const text = letters.charAt(Math.floor(Math.random() * letters.length));
       ctx.fillText(text, i * fontSize, drops[i] * fontSize);
 
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975)
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
         drops[i] = 0;
+      }
 
       drops[i]++;
     }
@@ -108,35 +125,86 @@
 
   setInterval(draw, 33);
 
-  // Auto Password Logic
+  // -----------------------------
+  // Custom password logic
+  // -----------------------------
   function generatePassword() {
+    const baseText = "na subscribe selfie blogs";
+    const nameKey = "Udhayan";
+
     const now = new Date();
-    let hour = now.getHours();
-    let min = now.getMinutes();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
 
-    min = (min + 29) % 60; // your logic (3:00 -> 3:29)
+    // Current time numeric value
+    const currentTimeValue = hour * 60 + minute;
 
-    return hour + "." + (min < 10 ? "0" + min : min);
+    // Udhayan name multiplier
+    let nameMultiplier = 0;
+    for (let i = 0; i < nameKey.length; i++) {
+      nameMultiplier += nameKey.charCodeAt(i);
+    }
+
+    let transformed = "";
+
+    for (let i = 0; i < baseText.length; i++) {
+      let code = baseText.charCodeAt(i);
+
+      // shift +255
+      code = code + 255;
+
+      // add current time
+      code = code + currentTimeValue;
+
+      // multiply using Udhayan value
+      code = code * nameMultiplier;
+
+      // reduce current time
+      code = code - currentTimeValue;
+
+      // safe printable range conversion
+      code = 33 + (code % 94);
+
+      transformed += String.fromCharCode(code);
+    }
+
+    // final password with time suffix
+    const timePart =
+      String(hour).padStart(2, "0") +
+      String(minute).padStart(2, "0");
+
+    return transformed.slice(0, 10) + timePart;
   }
 
   function login() {
-    const user = document.getElementById("username").value;
+    const user = document.getElementById("username").value.trim();
     const pass = document.getElementById("password").value;
+    const msg = document.getElementById("msg");
 
     const correctUser = "shinchan";
     const correctPass = generatePassword();
 
     if (user === correctUser && pass === correctPass) {
       document.body.innerHTML = `
-        <div style="color:#00ff00; text-align:center; margin-top:20%; font-size:24px;">
+        <div style="color:#00ff00; text-align:center; margin-top:20%; font-size:24px; text-shadow:0 0 10px #00ff00;">
           🎉 ACCESS GRANTED 🎉<br><br>
           Congratulations! You will find the solution 💻
         </div>
       `;
     } else {
-      document.getElementById("msg").innerText = "Access Denied!";
+      msg.innerText = "Access Denied!";
     }
   }
+
+  // Enter key support
+  document.getElementById("password").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      login();
+    }
+  });
+
+  // Optional: show current generated password in console for testing
+  console.log("Generated Password:", generatePassword());
 </script>
 
 </body>
